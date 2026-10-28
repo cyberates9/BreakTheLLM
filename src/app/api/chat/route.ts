@@ -26,23 +26,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // OpenRouter API İsteği
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen ortam değişkenlerini kontrol edin.' },
+        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen .env.local veya Netlify ortam değişkenlerini kontrol edin.' },
         { status: 500 }
       );
     }
 
+    // OpenRouter API'ye Gönderilecek Mesaj Formatı
     const apiMessages = [
       { role: 'system', content: currentLevel.systemPrompt },
-      ...(messages || []).map((m: { sender: string; text: string }) => ({
+      ...messages.map((m: { sender: string; text: string }) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text
       }))
     ];
 
-    // OpenRouter'ın otomatik ve dinamik ücretsiz modeli: openrouter/free
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
         'X-Title': 'BreakTheLLM'
       },
       body: JSON.stringify({
-        model: 'openrouter/free',
+        model: 'deepseek/deepseek-r1-distill-llama-70b',
         messages: apiMessages,
         temperature: 0.7
       })
@@ -61,14 +62,14 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('OpenRouter API Hatası:', data);
+      console.error('OpenRouter Error:', data);
       return NextResponse.json(
-        { error: data.error?.message || 'OpenRouter API servisi yanıt vermedi.' },
+        { error: data.error?.message || 'OpenRouter API hatası oluştu.' },
         { status: response.status }
       );
     }
 
-    const aiResponse = data.choices?.[0]?.message?.content || 'Sistemden boş yanıt döndü.';
+    const aiResponse = data.choices?.[0]?.message?.content || 'Yanıt alınamadı.';
 
     return NextResponse.json({ response: aiResponse });
   } catch (error: any) {
