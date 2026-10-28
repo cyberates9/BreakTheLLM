@@ -1,23 +1,34 @@
 'use client';
 
-import { useState } from 'react';
-import { useGameStore } from '@/store/useGameStore';
+import { useState, useRef, useEffect } from 'react';
+import { useGameStore, Message } from '@/store/useGameStore';
 
 export default function PhoneMockup() {
   const { currentLevelId, messages, addMessage } = useGameStore();
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Otomatik aşağı kaydırma için referans
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const currentMessages = messages[currentLevelId] || [];
 
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  // Mesaj listesi veya seviye değiştiğinde en alta kaydır
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [currentMessages, loading]);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || loading) return;
 
     const userMsg = input.trim();
     setInput('');
-
     addMessage(currentLevelId, { sender: 'user', text: userMsg });
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       const res = await fetch('/api/chat', {
@@ -25,87 +36,93 @@ export default function PhoneMockup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           levelId: currentLevelId,
-          userMessage: userMsg,
-          chatHistory: currentMessages,
-        }),
+          messages: [...currentMessages, { sender: 'user', text: userMsg }]
+        })
       });
 
       const data = await res.json();
-      addMessage(currentLevelId, { sender: 'bot', text: data.response });
-    } catch (error) {
+
+      if (res.ok && data.response) {
+        addMessage(currentLevelId, { sender: 'bot', text: data.response });
+      } else {
+        addMessage(currentLevelId, {
+          sender: 'system',
+          text: data.error || 'Bir hata oluştu, lütfen tekrar deneyin.'
+        });
+      }
+    } catch (err) {
       addMessage(currentLevelId, {
-        sender: 'bot',
-        text: '⚠️ Sunucuyla iletişim kurulurken bir hata oluştu.',
+        sender: 'system',
+        text: 'Sunucu ile bağlantı kurulamadı.'
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full h-[620px] bg-[#0a0d14]/90 backdrop-blur-2xl border border-slate-800/80 hover:border-emerald-500/40 rounded-3xl p-6 shadow-2xl flex flex-col justify-between transition-all duration-500 hover:shadow-[0_0_40px_rgba(16,185,129,0.1)]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50" />
-          <span className="text-sm font-bold tracking-widest text-emerald-400 font-mono uppercase">
-            BTLBANK <span className="text-slate-500 font-normal">/ TERMINAL</span>
-          </span>
-        </div>
-        <span className="text-xs font-mono text-emerald-400 bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-800/50">
-          SYSTEM ACTIVE
-        </span>
+    <div className="w-full max-w-sm mx-auto bg-slate-950 border-4 border-slate-800 rounded-[2.5rem] p-4 shadow-2xl flex flex-col h-[600px] relative overflow-hidden">
+      {/* Telefon Üst Ahize Detayı */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-slate-800 rounded-b-xl z-10 flex justify-center items-center">
+        <div className="w-12 h-1 bg-slate-900 rounded-full"></div>
       </div>
 
       {/* Mesaj Alanı */}
-      <div className="flex-1 overflow-y-auto my-4 space-y-3.5 pr-2 custom-scrollbar">
-        {currentMessages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-            <p className="text-sm font-mono text-emerald-400/90 font-semibold">BTLBANK AI Security Terminal v2.5</p>
-            <p className="text-xs mt-2 text-slate-400">Sohbete başlamak için komut veya mesaj gönderin.</p>
+      <div className="flex-1 overflow-y-auto space-y-3 pt-6 pb-2 pr-1 custom-scrollbar">
+        {currentMessages.length === 0 ? (
+          <div className="text-center text-slate-500 text-xs mt-10">
+            Sohbeti başlatmak için bir mesaj yazın...
           </div>
-        )}
-        {currentMessages.map((m, idx) => (
-          <div
-            key={idx}
-            className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        ) : (
+          currentMessages.map((m: Message, idx: number) => (
             <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                m.sender === 'user'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 rounded-br-none font-sans font-medium'
-                  : 'bg-slate-900/90 text-slate-200 border border-slate-800 shadow-md rounded-bl-none font-mono text-xs'
-              }`}
+              key={idx}
+              className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              {m.text}
+              <div
+                className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                  m.sender === 'user'
+                    ? 'bg-emerald-600 text-white rounded-br-none'
+                    : m.sender === 'bot'
+                    ? 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                    : 'bg-red-900/50 text-red-200 border border-red-800 text-xs w-full text-center'
+                }`}
+              >
+                {m.text}
+              </div>
             </div>
-          </div>
-        ))}
-        {isLoading && (
+          ))
+        )}
+
+        {/* Yükleniyor Göstergesi */}
+        {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-900/90 text-emerald-400 border border-slate-800 rounded-2xl rounded-bl-none px-4 py-3 text-xs font-mono animate-pulse">
-              [+] Yanıt işleniyor...
+            <div className="bg-slate-800 text-slate-400 rounded-2xl px-4 py-2 text-xs border border-slate-700 animate-pulse">
+              Yapay zeka yanıt yazıyor...
             </div>
           </div>
         )}
+
+        {/* Otomatik Kaydırma Noktası */}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Alanı */}
-      <div className="flex gap-2.5 pt-3 border-t border-slate-800/80">
+      {/* Mesaj Yazma Kutusu */}
+      <div className="pt-2 border-t border-slate-800 flex gap-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="BTLBANK Asistanına mesaj yazın..."
-          className="flex-1 bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 transition-all font-sans"
+          placeholder="Mesajınızı yazın..."
+          className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
         />
         <button
           onClick={handleSend}
-          disabled={isLoading}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 active:scale-95 cursor-pointer font-mono"
+          disabled={loading}
+          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl transition-colors text-sm"
         >
-          GÖNDER
+          Gönder
         </button>
       </div>
     </div>
