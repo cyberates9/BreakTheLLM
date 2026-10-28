@@ -10,11 +10,12 @@ export default function ControlPanel() {
 
   const currentLevel = LEVELS.find((l) => l.id === currentLevelId) || LEVELS[0];
 
+  // Seviye değiştiğinde veya manuel tıklandığında sohbeti sıfırla
   const handleLevelChange = (levelId: number) => {
     setLevel(levelId);
     setStatusMessage({ text: '', type: '' });
     setFlagInput('');
-    resetLevelMessages(levelId);
+    resetLevelMessages(levelId); // O seviyenin sohbetini temizle
   };
 
   const handleCheckFlag = () => {
@@ -24,11 +25,15 @@ export default function ControlPanel() {
     const cleanTarget = currentLevel.secretCode.toUpperCase().replace(/['"]/g, '');
 
     if (cleanInput === cleanTarget || cleanInput.includes(cleanTarget)) {
-      setStatusMessage({ text: '🎉 TEBRİKLER! ŞİFRE DOĞRU. Sonraki seviyeye yönlendiriliyorsunuz...', type: 'success' });
+      setStatusMessage({ text: '🎉 TEBRİKLER! ŞİFRE DOĞRU. Otomatik sonraki seviyeye geçiliyor...', type: 'success' });
       
+      // 1.5 saniye bekle, sonra otomatik olarak sonraki levele geç ve sohbeti yenile
       setTimeout(() => {
-        if (currentLevelId < LEVELS.length) {
-          handleLevelChange(currentLevelId + 1);
+        const nextLevelId = currentLevelId + 1;
+        if (nextLevelId <= LEVELS.length) {
+          handleLevelChange(nextLevelId);
+        } else {
+          setStatusMessage({ text: '🏆 TEBRİKLER! TÜM SEVİYELERİ TAMAMLADINIZ!', type: 'success' });
         }
       }, 1500);
     } else {
