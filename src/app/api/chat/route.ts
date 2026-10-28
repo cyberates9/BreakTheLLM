@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       }))
     ];
 
-    // Ücretsiz ve aktif çalışan model
+    // En kararlı ücretsiz OpenRouter modeli
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
         'X-Title': 'BreakTheLLM'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-lite-001:free',
+        model: 'deepseek/deepseek-chat:free',
         messages: apiMessages,
         temperature: 0.7
       })
