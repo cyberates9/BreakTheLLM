@@ -52,6 +52,7 @@ export interface GameState {
   messages: Record<number, Message[]>;
   setLevel: (levelId: number) => void;
   addMessage: (levelId: number, message: Message) => void;
+  resetLevelMessages: (levelId: number) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -63,6 +64,13 @@ export const useGameStore = create<GameState>((set) => ({
       messages: {
         ...state.messages,
         [levelId]: [...(state.messages[levelId] || []), message]
+      }
+    })),
+  resetLevelMessages: (levelId: number) =>
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [levelId]: []
       }
     }))
 }));
