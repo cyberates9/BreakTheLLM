@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       }))
     ];
 
-    // %100 Ücretsiz ve aktif model kullanıyoruz
+    // Ücretsiz ve aktif çalışan model
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
