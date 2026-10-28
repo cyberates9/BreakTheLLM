@@ -30,12 +30,12 @@ export async function POST(req: Request) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'API Anahtarı okunamadı. Lütfen sunucuyu/deployu kontrol edin.' },
+        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen .env.local veya Netlify ortam değişkenlerini kontrol edin.' },
         { status: 500 }
       );
     }
 
-    // OpenRouter Mesaj Formatı Düzeltildi
+    // OpenRouter Mesaj Formatı
     const apiMessages = [
       { role: 'system', content: currentLevel.systemPrompt },
       ...(messages || []).map((m: { sender: string; text: string }) => ({
@@ -44,6 +44,7 @@ export async function POST(req: Request) {
       }))
     ];
 
+    // Aktif ve ücretsiz model kullanıyoruz: meta-llama/llama-3.3-70b-instruct:free
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
     if (!response.ok) {
       console.error('OpenRouter API Hatası:', data);
       return NextResponse.json(
-        { error: `OpenRouter Yanıt Vermedi: ${data.error?.message || 'Servis hatası'}` },
+        { error: data.error?.message || 'OpenRouter API hatası oluştu.' },
         { status: response.status }
       );
     }
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Route Handler Error:', error);
     return NextResponse.json(
-      { error: 'Sunucu hatası: ' + error.message },
+      { error: 'Sunucu tarafında bir hata oluştu: ' + error.message },
       { status: 500 }
     );
   }
