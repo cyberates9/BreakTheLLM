@@ -8,16 +8,12 @@ export default function PhoneMockup() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Doğrudan mesaj kapsayıcısını yakalıyoruz
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentMessages = messages[currentLevelId] || [];
 
-  // Mesaj eklendikçe veya yüklenme durumu değiştikçe konteyneri en alta kaydır
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentMessages, loading]);
 
   const handleSend = async () => {
@@ -60,16 +56,13 @@ export default function PhoneMockup() {
 
   return (
     <div className="w-full max-w-sm mx-auto bg-slate-950 border-4 border-slate-800 rounded-[2.5rem] p-4 shadow-2xl flex flex-col h-[600px] relative overflow-hidden">
-      {/* Telefon Üst Ahize Detayı */}
+      {/* Telefon Çentiği */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-4 bg-slate-800 rounded-b-xl z-10 flex justify-center items-center">
         <div className="w-12 h-1 bg-slate-900 rounded-full"></div>
       </div>
 
-      {/* Mesaj Alanı (ref doğrudan buraya bağlı) */}
-      <div 
-        ref={chatContainerRef}
-        className="flex-1 overflow-y-auto space-y-3 pt-6 pb-2 pr-1 scroll-smooth"
-      >
+      {/* Mesaj Listesi */}
+      <div className="flex-1 overflow-y-auto space-y-3 pt-6 pb-2 pr-1">
         {currentMessages.length === 0 ? (
           <div className="text-center text-slate-500 text-xs mt-10">
             Sohbeti başlatmak için bir mesaj yazın...
@@ -95,7 +88,6 @@ export default function PhoneMockup() {
           ))
         )}
 
-        {/* Yükleniyor Göstergesi */}
         {loading && (
           <div className="flex justify-start">
             <div className="bg-slate-800 text-slate-400 rounded-2xl px-4 py-2 text-xs border border-slate-700 animate-pulse">
@@ -103,9 +95,11 @@ export default function PhoneMockup() {
             </div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Mesaj Yazma Kutusu */}
+      {/* Mesaj Girişi */}
       <div className="pt-2 border-t border-slate-800 flex gap-2">
         <input
           type="text"
