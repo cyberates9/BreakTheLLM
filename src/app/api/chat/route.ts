@@ -7,12 +7,10 @@ export async function POST(req: Request) {
 
     const currentLevel = LEVELS.find((l) => l.id === levelId) || LEVELS[0];
 
-    // Son kullanıcı mesajını al
     const lastUserMessage = messages && messages.length > 0 
       ? messages[messages.length - 1].text 
       : '';
 
-    // Level 2 için Yasaklı Kelime Kontrolü
     if (currentLevel.forbiddenKeywords && currentLevel.forbiddenKeywords.length > 0) {
       const lowerInput = lastUserMessage.toLowerCase();
       const detectedForbidden = currentLevel.forbiddenKeywords.filter((word) =>
@@ -26,16 +24,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // API Key Kontrolü
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen .env.local veya Netlify ortam değişkenlerini kontrol edin.' },
+        { error: 'OPENROUTER_API_KEY tanımlanmamış!' },
         { status: 500 }
       );
     }
 
-    // OpenRouter Mesaj Formatı
     const apiMessages = [
       { role: 'system', content: currentLevel.systemPrompt },
       ...(messages || []).map((m: { sender: string; text: string }) => ({
@@ -44,7 +40,7 @@ export async function POST(req: Request) {
       }))
     ];
 
-    // Aktif ve ücretsiz model kullanıyoruz: meta-llama/llama-3.3-70b-instruct:free
+    // %100 Ücretsiz ve aktif model kullanıyoruz
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -54,7 +50,7 @@ export async function POST(req: Request) {
         'X-Title': 'BreakTheLLM'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        model: 'google/gemini-2.0-flash-lite-001:free',
         messages: apiMessages,
         temperature: 0.7
       })
