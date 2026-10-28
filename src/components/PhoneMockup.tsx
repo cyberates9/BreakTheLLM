@@ -8,18 +8,16 @@ export default function PhoneMockup() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Otomatik aşağı kaydırma için referans
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Doğrudan mesaj kapsayıcısını yakalıyoruz
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const currentMessages = messages[currentLevelId] || [];
 
-  // Mesaj listesi veya seviye değiştiğinde en alta kaydır
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Mesaj eklendikçe veya yüklenme durumu değiştikçe konteyneri en alta kaydır
   useEffect(() => {
-    scrollToBottom();
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [currentMessages, loading]);
 
   const handleSend = async () => {
@@ -67,8 +65,11 @@ export default function PhoneMockup() {
         <div className="w-12 h-1 bg-slate-900 rounded-full"></div>
       </div>
 
-      {/* Mesaj Alanı */}
-      <div className="flex-1 overflow-y-auto space-y-3 pt-6 pb-2 pr-1 custom-scrollbar">
+      {/* Mesaj Alanı (ref doğrudan buraya bağlı) */}
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto space-y-3 pt-6 pb-2 pr-1 scroll-smooth"
+      >
         {currentMessages.length === 0 ? (
           <div className="text-center text-slate-500 text-xs mt-10">
             Sohbeti başlatmak için bir mesaj yazın...
@@ -102,9 +103,6 @@ export default function PhoneMockup() {
             </div>
           </div>
         )}
-
-        {/* Otomatik Kaydırma Noktası */}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Mesaj Yazma Kutusu */}
