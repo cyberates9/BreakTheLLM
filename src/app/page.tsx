@@ -137,8 +137,13 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="w-full max-w-6xl pt-6 mt-6 border-t border-slate-800/40 text-center text-xs text-slate-500 font-sans">
-        <span>🛡️ BreakTheLLM Security Challenge — Siber Güvenlik Dersleri İçin Tasarlanmıştır.</span>
+      <footer className="w-full max-w-6xl pt-6 mt-6 border-t border-slate-800/40 text-center text-xs text-slate-500 font-sans flex flex-col items-center gap-1.5">
+        <div>
+          🛡️ BreakTheLLM Security Challenge — Siber Güvenlik Dersleri İçin Tasarlanmıştır.
+        </div>
+        <div className="font-mono text-[11px] text-emerald-400/90 tracking-wider">
+          Cyber Security Student / Yunus Ateş
+        </div>
       </footer>
     </main>
   );
