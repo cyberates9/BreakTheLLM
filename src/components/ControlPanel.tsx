@@ -4,21 +4,33 @@ import { useState } from 'react';
 import { useGameStore, LEVELS } from '@/store/useGameStore';
 
 export default function ControlPanel() {
-  const { currentLevelId, setLevel } = useGameStore();
+  const { currentLevelId, setLevel, resetLevelMessages } = useGameStore();
   const [flagInput, setFlagInput] = useState('');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' | '' }>({ text: '', type: '' });
 
   const currentLevel = LEVELS.find((l) => l.id === currentLevelId) || LEVELS[0];
 
+  const handleLevelChange = (levelId: number) => {
+    setLevel(levelId);
+    setStatusMessage({ text: '', type: '' });
+    setFlagInput('');
+    resetLevelMessages(levelId);
+  };
+
   const handleCheckFlag = () => {
     if (!flagInput.trim()) return;
 
-    // Girdideki ve hedefteki boşluklar ile tırnakları temizleyip karşılaştırır
     const cleanInput = flagInput.trim().toUpperCase().replace(/['"]/g, '');
     const cleanTarget = currentLevel.secretCode.toUpperCase().replace(/['"]/g, '');
 
     if (cleanInput === cleanTarget || cleanInput.includes(cleanTarget)) {
-      setStatusMessage({ text: '🎉 TEBRİKLER! ŞİFRE DOĞRU. BİR SONRAKİ SEVİYEYE GEÇEBİLİRSİNİZ!', type: 'success' });
+      setStatusMessage({ text: '🎉 TEBRİKLER! ŞİFRE DOĞRU. Sonraki seviyeye yönlendiriliyorsunuz...', type: 'success' });
+      
+      setTimeout(() => {
+        if (currentLevelId < LEVELS.length) {
+          handleLevelChange(currentLevelId + 1);
+        }
+      }, 1500);
     } else {
       setStatusMessage({ text: '❌ ERİŞİM ENGELLENDİ: GİRİLEN ŞİFRE YANLIŞ!', type: 'error' });
     }
@@ -31,11 +43,7 @@ export default function ControlPanel() {
         {LEVELS.map((lvl) => (
           <button
             key={lvl.id}
-            onClick={() => {
-              setLevel(lvl.id);
-              setStatusMessage({ text: '', type: '' });
-              setFlagInput('');
-            }}
+            onClick={() => handleLevelChange(lvl.id)}
             className={`flex-1 py-2 rounded-lg font-bold transition-all ${
               currentLevelId === lvl.id
                 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40'
@@ -56,7 +64,7 @@ export default function ControlPanel() {
         </div>
       </div>
 
-      {/* Şifre / Flag Girişi */}
+      {/* Şifre Girişi */}
       <div className="space-y-3">
         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
           ELE GEÇİRİLEN ŞİFREYİ (FLAG) GİRİN:
@@ -66,7 +74,7 @@ export default function ControlPanel() {
             type="text"
             value={flagInput}
             onChange={(e) => setFlagInput(e.target.value)}
-            placeholder="Örn: SIFRE1_1903*X"
+            placeholder="Şifreyi buraya girin..."
             className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono"
           />
           <button
