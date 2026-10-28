@@ -13,6 +13,7 @@ export default function ControlPanel() {
   const handleCheckFlag = () => {
     if (!flagInput.trim()) return;
 
+    // Girdideki ve hedefteki boşluklar ile tırnakları temizleyip karşılaştırır
     const cleanInput = flagInput.trim().toUpperCase().replace(/['"]/g, '');
     const cleanTarget = currentLevel.secretCode.toUpperCase().replace(/['"]/g, '');
 
@@ -55,7 +56,7 @@ export default function ControlPanel() {
         </div>
       </div>
 
-      {/* Şifre Girişi */}
+      {/* Şifre / Flag Girişi */}
       <div className="space-y-3">
         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
           ELE GEÇİRİLEN ŞİFREYİ (FLAG) GİRİN:
@@ -65,7 +66,7 @@ export default function ControlPanel() {
             type="text"
             value={flagInput}
             onChange={(e) => setFlagInput(e.target.value)}
-            placeholder="Şifreyi buraya girin..."
+            placeholder="Örn: SIFRE1_1903*X"
             className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500 font-mono"
           />
           <button
