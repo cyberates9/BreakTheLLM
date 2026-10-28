@@ -7,12 +7,10 @@ export async function POST(req: Request) {
 
     const currentLevel = LEVELS.find((l) => l.id === levelId) || LEVELS[0];
 
-    // Son kullanıcı mesajını al
     const lastUserMessage = messages && messages.length > 0 
       ? messages[messages.length - 1].text 
       : '';
 
-    // Level 2 için Yasaklı Kelime Kontrolü
     if (currentLevel.forbiddenKeywords && currentLevel.forbiddenKeywords.length > 0) {
       const lowerInput = lastUserMessage.toLowerCase();
       const detectedForbidden = currentLevel.forbiddenKeywords.filter((word) =>
@@ -26,19 +24,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // OpenRouter API İsteği
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen .env.local veya Netlify ortam değişkenlerini kontrol edin.' },
+        { error: 'OPENROUTER_API_KEY tanımlanmamış!' },
         { status: 500 }
       );
     }
 
-    // OpenRouter API'ye Gönderilecek Mesaj Formatı
     const apiMessages = [
       { role: 'system', content: currentLevel.systemPrompt },
-      ...messages.map((m: { sender: string; text: string }) => ({
+      ...(messages || []).map((m: { sender: string; text: string }) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text
       }))
@@ -53,7 +49,7 @@ export async function POST(req: Request) {
         'X-Title': 'BreakTheLLM'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-r1-distill-llama-70b',
+        model: 'openrouter/free',
         messages: apiMessages,
         temperature: 0.7
       })
@@ -62,7 +58,7 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('OpenRouter Error:', data);
+      console.error('OpenRouter API Hatası:', data);
       return NextResponse.json(
         { error: data.error?.message || 'OpenRouter API hatası oluştu.' },
         { status: response.status }
