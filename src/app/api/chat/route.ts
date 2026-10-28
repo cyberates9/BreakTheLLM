@@ -26,19 +26,19 @@ export async function POST(req: Request) {
       }
     }
 
-    // OpenRouter API İsteği
+    // API Key Kontrolü
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen .env.local veya Netlify ortam değişkenlerini kontrol edin.' },
+        { error: 'API Anahtarı okunamadı. Lütfen sunucuyu/deployu kontrol edin.' },
         { status: 500 }
       );
     }
 
-    // OpenRouter API'ye Gönderilecek Mesaj Formatı
+    // OpenRouter Mesaj Formatı Düzeltildi
     const apiMessages = [
       { role: 'system', content: currentLevel.systemPrompt },
-      ...messages.map((m: { sender: string; text: string }) => ({
+      ...(messages || []).map((m: { sender: string; text: string }) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text
       }))
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         'X-Title': 'BreakTheLLM'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-r1-distill-llama-70b', // Veya kullandığın model id'si (örneğin openai/gpt-3.5-turbo)
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         messages: apiMessages,
         temperature: 0.7
       })
@@ -62,9 +62,9 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('OpenRouter Error:', data);
+      console.error('OpenRouter API Hatası:', data);
       return NextResponse.json(
-        { error: data.error?.message || 'OpenRouter API hatası oluştu.' },
+        { error: `OpenRouter Yanıt Vermedi: ${data.error?.message || 'Servis hatası'}` },
         { status: response.status }
       );
     }
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Route Handler Error:', error);
     return NextResponse.json(
-      { error: 'Sunucu tarafında bir hata oluştu: ' + error.message },
+      { error: 'Sunucu hatası: ' + error.message },
       { status: 500 }
     );
   }
