@@ -3,85 +3,79 @@ import { LEVELS } from '@/store/useGameStore';
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.OPENROUTER_API_KEY;
+    const { levelId, messages } = await req.json();
 
-    if (!apiKey) {
-      return NextResponse.json(
-        { response: 'API Anahtarı bulunamadı! Lütfen .env.local dosyanıza OPENROUTER_API_KEY ekleyin.' },
-        { status: 500 }
-      );
-    }
+    const currentLevel = LEVELS.find((l) => l.id === levelId) || LEVELS[0];
 
-    const { levelId, userMessage, chatHistory } = await req.json();
+    // Son kullanıcı mesajını al
+    const lastUserMessage = messages && messages.length > 0 
+      ? messages[messages.length - 1].text 
+      : '';
 
-    const currentLevel = LEVELS.find((l) => l.id === levelId);
-    if (!currentLevel) {
-      return NextResponse.json({ error: 'Geçersiz Seviye' }, { status: 400 });
-    }
-
-    // SEVİYE 2: GİRDİ FİLTRELEME (Blacklist)
+    // Level 2 için Yasaklı Kelime Kontrolü
     if (currentLevel.forbiddenKeywords && currentLevel.forbiddenKeywords.length > 0) {
-      const lowerInput = userMessage.toLowerCase();
+      const lowerInput = lastUserMessage.toLowerCase();
       const detectedForbidden = currentLevel.forbiddenKeywords.filter((word) =>
         lowerInput.includes(word.toLowerCase())
       );
 
       if (detectedForbidden.length > 0) {
         return NextResponse.json({
-          isBlocked: true,
-          response: `⚠️ [GÜVENLİK DUVARI UYARISI]: Mesajınızda yasaklı kelimeler tespit edildi: (${detectedForbidden.join(
-            ', '
-          )}). İşlem güvenlik protokolleri gereği engellendi.`,
+          response: `⚠️ GÜVENLİK FİLTRESİ ENGELLENDİ!\nMesajınızda yasaklı kelime tespit edildi: [${detectedForbidden.join(', ')}]. Lütfen bu kelimeleri kullanmadan tekrar deneyin.`
         });
       }
     }
 
-    const messages = [
-      { role: 'system', content: currentLevel.systemPrompt },
-      ...chatHistory.map((m: { sender: string; text: string }) => ({
-        role: m.sender === 'user' ? 'user' : 'assistant',
-        content: m.text,
-      })),
-      { role: 'user', content: userMessage },
-    ];
-
-    // Otomatik en uygun ücretsiz modeli seçen OpenRouter isteği
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'BreakTheLLM',
-      },
-      body: JSON.stringify({
-        model: 'openrouter/auto', // Otomatik model yönlendirmesi
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 300, // Kredi aşımını engelleyen token sınırı
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error('OpenRouter Hatası:', data);
+    // OpenRouter API İsteği
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
       return NextResponse.json(
-        { response: `API Hatası (${res.status}): ${data?.error?.message || 'Yanıt alınamadı.'}` },
-        { status: res.status }
+        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen .env.local veya Netlify ortam değişkenlerini kontrol edin.' },
+        { status: 500 }
       );
     }
 
-    const botReply = data?.choices?.[0]?.message?.content || 'Üzgünüm, yanıt alınamadı.';
+    // OpenRouter API'ye Gönderilecek Mesaj Formatı
+    const apiMessages = [
+      { role: 'system', content: currentLevel.systemPrompt },
+      ...messages.map((m: { sender: string; text: string }) => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }))
+    ];
 
-    return NextResponse.json({
-      isBlocked: false,
-      response: botReply,
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://breakthellm.netlify.app',
+        'X-Title': 'BreakTheLLM'
+      },
+      body: JSON.stringify({
+        model: 'deepseek/deepseek-r1-distill-llama-70b', // Veya kullandığın model id'si (örneğin openai/gpt-3.5-turbo)
+        messages: apiMessages,
+        temperature: 0.7
+      })
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('OpenRouter Error:', data);
+      return NextResponse.json(
+        { error: data.error?.message || 'OpenRouter API hatası oluştu.' },
+        { status: response.status }
+      );
+    }
+
+    const aiResponse = data.choices?.[0]?.message?.content || 'Yanıt alınamadı.';
+
+    return NextResponse.json({ response: aiResponse });
   } catch (error: any) {
-    console.error('Sunucu Hatası:', error);
+    console.error('Route Handler Error:', error);
     return NextResponse.json(
-      { response: `Sunucu Hatası: ${error?.message || 'İstek işlenemedi.'}` },
+      { error: 'Sunucu tarafında bir hata oluştu: ' + error.message },
       { status: 500 }
     );
   }
