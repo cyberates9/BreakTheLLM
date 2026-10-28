@@ -7,10 +7,12 @@ export async function POST(req: Request) {
 
     const currentLevel = LEVELS.find((l) => l.id === levelId) || LEVELS[0];
 
+    // Son kullanıcı mesajını al
     const lastUserMessage = messages && messages.length > 0 
       ? messages[messages.length - 1].text 
       : '';
 
+    // Level 2 için Yasaklı Kelime Kontrolü
     if (currentLevel.forbiddenKeywords && currentLevel.forbiddenKeywords.length > 0) {
       const lowerInput = lastUserMessage.toLowerCase();
       const detectedForbidden = currentLevel.forbiddenKeywords.filter((word) =>
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY tanımlanmamış!' },
+        { error: 'OPENROUTER_API_KEY tanımlanmamış! Lütfen ortam değişkenlerini kontrol edin.' },
         { status: 500 }
       );
     }
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
       }))
     ];
 
-    // En kararlı ücretsiz OpenRouter modeli
+    // OpenRouter'ın otomatik ve dinamik ücretsiz modeli: openrouter/free
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
         'X-Title': 'BreakTheLLM'
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-chat:free',
+        model: 'openrouter/free',
         messages: apiMessages,
         temperature: 0.7
       })
@@ -61,12 +63,12 @@ export async function POST(req: Request) {
     if (!response.ok) {
       console.error('OpenRouter API Hatası:', data);
       return NextResponse.json(
-        { error: data.error?.message || 'OpenRouter API hatası oluştu.' },
+        { error: data.error?.message || 'OpenRouter API servisi yanıt vermedi.' },
         { status: response.status }
       );
     }
 
-    const aiResponse = data.choices?.[0]?.message?.content || 'Yanıt alınamadı.';
+    const aiResponse = data.choices?.[0]?.message?.content || 'Sistemden boş yanıt döndü.';
 
     return NextResponse.json({ response: aiResponse });
   } catch (error: any) {
